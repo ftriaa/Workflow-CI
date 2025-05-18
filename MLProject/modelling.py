@@ -30,9 +30,6 @@ parser.add_argument("--data_path", type=str, default="stroke_dataset_preprocessi
 parser.add_argument("--artefak_dir", type=str, default="artefak")
 args = parser.parse_args()
 
-# Inisialisasi MLflow experiment
-mlflow.set_experiment("Model_Tuning_Advanced")
-
 # Buat folder artefak jika belum ada
 os.makedirs(args.artefak_dir, exist_ok=True)
 
