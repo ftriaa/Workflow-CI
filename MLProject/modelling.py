@@ -74,9 +74,21 @@ def save_confusion_matrix(cm, model_name):
 
 # Simpan metrik ke JSON
 def save_metrics_json(metrics, model_name):
+    # Konversi semua nilai numpy menjadi tipe yang bisa disimpan di JSON
+    def convert(o):
+        if isinstance(o, np.ndarray):
+            return o.tolist()
+        if isinstance(o, (np.float32, np.float64)):
+            return float(o)
+        if isinstance(o, (np.int32, np.int64)):
+            return int(o)
+        return o
+
+    cleaned_metrics = {k: convert(v) for k, v in metrics.items()}
+
     path = os.path.join(args.artefak_dir, f"{model_name}_metrics.json")
     with open(path, "w") as f:
-        json.dump(metrics, f, indent=4)
+        json.dump(cleaned_metrics, f, indent=4)
     return path
 
 # Tuning + training + logging
