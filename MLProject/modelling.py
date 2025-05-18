@@ -29,6 +29,10 @@ mlflow.set_tracking_uri("https://dagshub.com/ftriaa/msml_stroke_model.mlflow")
 dagshub.init(repo_owner="ftriaa", repo_name="msml_stroke_model", mlflow=True)
 mlflow.set_experiment("Model_Tuning_Advanced")
 
+# Tambahkan path untuk folder artefak
+ARTEFAK_DIR = "artefak"
+os.makedirs(ARTEFAK_DIR, exist_ok=True)
+
 # FUNCTION HELPER 
 
 def load_data(path="stroke_dataset_preprocessing.csv"):
@@ -60,13 +64,13 @@ def save_confusion_matrix(cm, model_name):
     plt.title(f"{model_name} Confusion Matrix")
     plt.xlabel("Predicted")
     plt.ylabel("Actual")
-    path = f"{model_name}_confusion_matrix.png"
+    path = os.path.join(ARTEFAK_DIR, f"{model_name}_confusion_matrix.png")
     plt.savefig(path)
     plt.close()
     return path
 
 def save_metrics_json(metrics, model_name):
-    path = f"{model_name}_metrics.json"
+    path = os.path.join(ARTEFAK_DIR, f"{model_name}_metrics.json")
     with open(path, "w") as f:
         json.dump(metrics, f, indent=4)
     return path
