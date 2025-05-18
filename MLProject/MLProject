@@ -8,4 +8,4 @@ entry_points:
       data_path: {type: str, default: "stroke_dataset_preprocessing.csv"}
       artefak_dir: {type: str, default: "artefak"}
     command: >
-      python modelling_tuning.py --data_path {data_path} --artefak_dir {artefak_dir}
+      python modelling.py --data_path {data_path} --artefak_dir {artefak_dir}
