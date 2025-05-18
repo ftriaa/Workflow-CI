@@ -1,8 +1,11 @@
-name: stroke-ml-ci
+name: msml-stroke-model
 
-conda_env: conda.yaml
+conda_env: conda.yaml  
 
 entry_points:
   main:
-    parameters: {}
-    command: "python modelling.py"
+    parameters:
+      data_path: {type: str, default: "stroke_dataset_preprocessing.csv"}
+      artefak_dir: {type: str, default: "artefak"}
+    command: >
+      python modelling_tuning.py --data_path {data_path} --artefak_dir {artefak_dir}
