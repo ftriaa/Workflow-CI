@@ -20,28 +20,35 @@ from sklearn.metrics import (
     f1_score, roc_auc_score, confusion_matrix
 )
 from imblearn.over_sampling import SMOTE
+import argparse
 
 warnings.filterwarnings("ignore")
 
-# Setup MLflow Tracking (Opsional bisa diset di MLproject / ENV) 
+# Ambil parameter dari CLI
+parser = argparse.ArgumentParser()
+parser.add_argument("--data_path", type=str, default="stroke_dataset_preprocessing.csv")
+parser.add_argument("--artefak_dir", type=str, default="artefak")
+args = parser.parse_args()
+
+# Inisialisasi MLflow experiment
 mlflow.set_experiment("Model_Tuning_Advanced")
 
-# Folder artefak lokal
-ARTEFAK_DIR = "artefak"
-os.makedirs(ARTEFAK_DIR, exist_ok=True)
+# Buat folder artefak jika belum ada
+os.makedirs(args.artefak_dir, exist_ok=True)
 
-# Load dan Preprocessing Data
-def load_data(path="stroke_dataset_preprocessing.csv"):
+# Load data
+def load_data(path):
     df = pd.read_csv(path)
     X = df.drop("stroke", axis=1)
     y = df["stroke"]
     return X, y
 
+# Oversampling dengan SMOTE
 def apply_smote(X, y):
     smote = SMOTE(random_state=42)
     return smote.fit_resample(X, y)
 
-# Evaluasi & Logging Artefak
+# Evaluasi model
 def evaluate_model(model, X_test, y_test):
     y_pred = model.predict(X_test)
     y_proba = model.predict_proba(X_test)[:, 1] if hasattr(model, "predict_proba") else None
@@ -56,25 +63,26 @@ def evaluate_model(model, X_test, y_test):
     }
     return metrics
 
+# Simpan confusion matrix ke file
 def save_confusion_matrix(cm, model_name):
     plt.figure(figsize=(6, 4))
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
     plt.title(f"{model_name} - Confusion Matrix")
     plt.xlabel("Predicted")
     plt.ylabel("Actual")
-
-    path = os.path.join(ARTEFAK_DIR, f"{model_name}_confusion_matrix.png")
+    path = os.path.join(args.artefak_dir, f"{model_name}_confusion_matrix.png")
     plt.savefig(path)
     plt.close()
     return path
 
+# Simpan metrik ke JSON
 def save_metrics_json(metrics, model_name):
-    path = os.path.join(ARTEFAK_DIR, f"{model_name}_metrics.json")
+    path = os.path.join(args.artefak_dir, f"{model_name}_metrics.json")
     with open(path, "w") as f:
         json.dump(metrics, f, indent=4)
     return path
 
-# Tuning, Training, Logging
+# Tuning + training + logging
 def tune_and_log_model(name, model, param_grid, X_res, y_res, X_test, y_test):
     with mlflow.start_run(run_name=f"Tuned_{name}"):
         grid = GridSearchCV(model, param_grid, cv=3, scoring="f1", n_jobs=-1)
@@ -84,7 +92,7 @@ def tune_and_log_model(name, model, param_grid, X_res, y_res, X_test, y_test):
         scores = evaluate_model(best_model, X_test, y_test)
         cm = scores["conf_matrix"]
 
-        # Logging param dan metrik
+        # Logging parameter, metrik, artefak
         mlflow.log_param("model", name)
         mlflow.log_params(grid.best_params_)
         mlflow.log_metrics({
@@ -99,10 +107,8 @@ def tune_and_log_model(name, model, param_grid, X_res, y_res, X_test, y_test):
             "conf_matrix_TP": cm[1][1],
         })
 
-        # Logging model
         mlflow.sklearn.log_model(best_model, "model")
 
-        # Logging artefak visual
         cm_path = save_confusion_matrix(cm, name)
         json_path = save_metrics_json(scores, name)
         mlflow.log_artifact(cm_path)
@@ -112,9 +118,9 @@ def tune_and_log_model(name, model, param_grid, X_res, y_res, X_test, y_test):
         print(f"Best Params: {grid.best_params_}")
         print(f"F1 Score: {scores['f1_score']:.4f} | ROC AUC: {scores['roc_auc']:.4f}")
 
-# Main Eksekusi 
+# Main eksekusi
 def main():
-    X, y = load_data()
+    X, y = load_data(args.data_path)
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, stratify=y, random_state=42
     )
