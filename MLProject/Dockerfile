@@ -11,4 +11,4 @@ RUN conda update -n base -c defaults conda -y && \
 
 SHELL ["conda", "run", "-n", "msml-env", "/bin/bash", "-c"]
 
-CMD ["python", "MLProject/modelling.py"]
+CMD ["python", "./MLProject/modelling.py"]
