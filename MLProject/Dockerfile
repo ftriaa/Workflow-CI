@@ -2,15 +2,15 @@ FROM continuumio/miniconda3
 
 WORKDIR /app
 
-# Copy seluruh isi MLProject ke dalam container
-COPY MLProject/ ./MLProject
+# Copy seluruh isi project ke dalam container
+COPY . /app
 
-# Update conda dan install environment
+# Update conda dan buat environment sekaligus
 RUN conda update -n base -c defaults conda -y && \
-    conda env create -f MLProject/conda.yaml
+    conda env create -f conda.yaml
 
-# Gunakan shell dari conda env untuk run command berikutnya
+# Gunakan shell dari conda env msml-env (ganti kalau nama env berbeda)
 SHELL ["conda", "run", "-n", "msml-env", "/bin/bash", "-c"]
 
-# Jalankan script training saat container dijalankan
-CMD ["python", "MLProject/modelling.py"]
+# Jalankan script training (ganti kalau file .py ada di folder lain)
+CMD ["python", "modelling.py"]
