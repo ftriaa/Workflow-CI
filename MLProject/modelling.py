@@ -84,7 +84,7 @@ def save_metrics_json(metrics, model_name):
 
 # Tuning + training + logging
 def tune_and_log_model(name, model, param_grid, X_res, y_res, X_test, y_test):
-    with mlflow.start_run(run_name=f"Tuned_{name}"):
+    with mlflow.start_run(run_name=f"Tuned_{name}", nested=True):
         grid = GridSearchCV(model, param_grid, cv=3, scoring="f1", n_jobs=-1)
         grid.fit(X_res, y_res)
         best_model = grid.best_estimator_
