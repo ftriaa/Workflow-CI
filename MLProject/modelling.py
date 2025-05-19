@@ -74,7 +74,6 @@ def save_confusion_matrix(cm, model_name):
 
 # Simpan metrik ke JSON
 def save_metrics_json(metrics, model_name):
-    # Konversi semua nilai numpy menjadi tipe yang bisa disimpan di JSON
     def convert(o):
         if isinstance(o, np.ndarray):
             return o.tolist()
@@ -116,7 +115,11 @@ def tune_and_log_model(name, model, param_grid, X_res, y_res, X_test, y_test):
             "conf_matrix_TP": cm[1][1],
         })
 
-        mlflow.sklearn.log_model(best_model, "model")
+        # Simpan model ke subfolder artefak unik tiap model
+        mlflow.sklearn.log_model(
+            sk_model=best_model,
+            artifact_path=f"model_{name}"
+        )
 
         cm_path = save_confusion_matrix(cm, name)
         json_path = save_metrics_json(scores, name)
@@ -126,6 +129,7 @@ def tune_and_log_model(name, model, param_grid, X_res, y_res, X_test, y_test):
         print(f"\n{name} - DONE")
         print(f"Best Params: {grid.best_params_}")
         print(f"F1 Score: {scores['f1_score']:.4f} | ROC AUC: {scores['roc_auc']:.4f}")
+        print(f"Model saved under: model_{name}")
 
 # Main eksekusi
 def main():
