@@ -1,0 +1,1 @@
+https://hub.docker.com/layers/ftriaanggra/stroke-model/latest/images/sha256-bef0eb3fad9c72ae79bcda65c12731c03fddb474d380f7b89d4fbb69db8440ea 
