@@ -1,6 +1,7 @@
 import os
 import json
 import warnings
+import argparse
 
 import pandas as pd
 import numpy as np
@@ -20,11 +21,10 @@ from sklearn.metrics import (
     f1_score, roc_auc_score, confusion_matrix
 )
 from imblearn.over_sampling import SMOTE
-import argparse
 
 warnings.filterwarnings("ignore")
 
-# Ambil parameter dari CLI
+# CLI args
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_path", type=str, default="stroke_dataset_preprocessing.csv")
 parser.add_argument("--artefak_dir", type=str, default="artefak")
@@ -60,7 +60,7 @@ def evaluate_model(model, X_test, y_test):
     }
     return metrics
 
-# Simpan confusion matrix ke file
+# Simpan confusion matrix
 def save_confusion_matrix(cm, model_name):
     plt.figure(figsize=(6, 4))
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
@@ -84,35 +84,26 @@ def save_metrics_json(metrics, model_name):
         return o
 
     cleaned_metrics = {k: convert(v) for k, v in metrics.items()}
-
     path = os.path.join(args.artefak_dir, f"{model_name}_metrics.json")
     with open(path, "w") as f:
         json.dump(cleaned_metrics, f, indent=4)
     return path
 
-# Tuning + training + logging
+# Training + Tuning + Logging
 def tune_and_log_model(name, model, param_grid, X_res, y_res, X_test, y_test):
-    # Buat run MLflow per model
     with mlflow.start_run(run_name=f"Tuned_{name}", nested=True):
-        # Tuning model
+        # Tuning
         grid = GridSearchCV(model, param_grid, cv=3, scoring="f1", n_jobs=-1)
         grid.fit(X_res, y_res)
         best_model = grid.best_estimator_
 
-        # Evaluasi model
+        # Evaluasi
         scores = evaluate_model(best_model, X_test, y_test)
         cm = scores["conf_matrix"]
 
-        # === Buat folder output ===
-        base_dir = os.path.join(name, "artifacts")
-        model_output_dir = os.path.join(base_dir, f"model_{name}")
-        os.makedirs(model_output_dir, exist_ok=True)
-
-        # Simpan confusion matrix dan metrics.json ke folder
+        # Simpan confusion matrix & metrik JSON ke folder artefak/
         cm_path = save_confusion_matrix(cm, name)
         json_path = save_metrics_json(scores, name)
-        os.rename(cm_path, os.path.join(base_dir, os.path.basename(cm_path)))
-        os.rename(json_path, os.path.join(base_dir, os.path.basename(json_path)))
 
         # Logging ke MLflow
         mlflow.log_param("model", name)
@@ -131,7 +122,6 @@ def tune_and_log_model(name, model, param_grid, X_res, y_res, X_test, y_test):
 
         # Log dan simpan model
         mlflow.sklearn.log_model(sk_model=best_model, artifact_path=f"model_{name}")
-        mlflow.sklearn.save_model(sk_model=best_model, path=model_output_dir)
 
         print(f"\n{name} - DONE")
         print(f"Best Params: {grid.best_params_}")
