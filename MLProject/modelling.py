@@ -92,15 +92,29 @@ def save_metrics_json(metrics, model_name):
 
 # Tuning + training + logging
 def tune_and_log_model(name, model, param_grid, X_res, y_res, X_test, y_test):
+    # Buat run MLflow per model
     with mlflow.start_run(run_name=f"Tuned_{name}", nested=True):
+        # Tuning model
         grid = GridSearchCV(model, param_grid, cv=3, scoring="f1", n_jobs=-1)
         grid.fit(X_res, y_res)
         best_model = grid.best_estimator_
 
+        # Evaluasi model
         scores = evaluate_model(best_model, X_test, y_test)
         cm = scores["conf_matrix"]
 
-        # Logging parameter, metrik, artefak
+        # === Buat folder output ===
+        base_dir = os.path.join(name, "artifacts")
+        model_output_dir = os.path.join(base_dir, f"model_{name}")
+        os.makedirs(model_output_dir, exist_ok=True)
+
+        # Simpan confusion matrix dan metrics.json ke folder
+        cm_path = save_confusion_matrix(cm, name)
+        json_path = save_metrics_json(scores, name)
+        os.rename(cm_path, os.path.join(base_dir, os.path.basename(cm_path)))
+        os.rename(json_path, os.path.join(base_dir, os.path.basename(json_path)))
+
+        # Logging ke MLflow
         mlflow.log_param("model", name)
         mlflow.log_params(grid.best_params_)
         mlflow.log_metrics({
@@ -115,21 +129,13 @@ def tune_and_log_model(name, model, param_grid, X_res, y_res, X_test, y_test):
             "conf_matrix_TP": cm[1][1],
         })
 
-        # Simpan model ke subfolder artefak unik tiap model
-        mlflow.sklearn.log_model(
-            sk_model=best_model,
-            artifact_path=f"model_{name}"
-        )
-
-        cm_path = save_confusion_matrix(cm, name)
-        json_path = save_metrics_json(scores, name)
-        mlflow.log_artifact(cm_path)
-        mlflow.log_artifact(json_path)
+        # Log dan simpan model
+        mlflow.sklearn.log_model(sk_model=best_model, artifact_path=f"model_{name}")
+        mlflow.sklearn.save_model(sk_model=best_model, path=model_output_dir)
 
         print(f"\n{name} - DONE")
         print(f"Best Params: {grid.best_params_}")
         print(f"F1 Score: {scores['f1_score']:.4f} | ROC AUC: {scores['roc_auc']:.4f}")
-        print(f"Model saved under: model_{name}")
 
 # Main eksekusi
 def main():
